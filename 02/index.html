@@ -1,2 +1,21 @@
-Ready for assignment 2.
+<html>
+  <head>
+    <script type="text/javascript" src="https://get.goXTK.com/xtk_edge.js"></script>
+  </head>
+  <body>
+    <script>
+      window.onload = function () {
+        r = new X.renderer3D();
+        r.init();
+
+        c = new X.cube();
+        c.color = [1, 0, 0];
+        r.add(c);
+
+        r.render();
+      };
+        
+    </script>
+  </body>
+</html>
 
