@@ -10,72 +10,108 @@
   </head>
   <body>
     <script>
-      var r;                       // global renderer
-      var SIZE = 4;
-      var GAP  = 2;
-      var STEP = SIZE + GAP;
-      var SELECTED_CUBE = null;
-      var SPIN_CAMERA   = false;
+      // Globals (per assignment hints)
+      var r;                              // renderer (global so loader.js can use it)
+      var SIZE = 4;                       // cube side length
+      var GAP  = 2;                       // spacing between cubes
+      var STEP = SIZE + GAP;              // translation step (prevents overlap)
+
+      var SELECTED_CUBE = null;           // for picking
+      var SPIN_CAMERA   = false;          // for camera spin toggle
 
       window.onload = function () {
-        r = new X.renderer3D();    // assign globally (no "var" here)
+        r = new X.renderer3D();
         r.init();
+        window.r = r; // ensure loader.js sees the same renderer
 
+        // Triple-nested loops: -5..5 (inclusive)
         for (var z = -5; z < 6; z++) {
           for (var y = -5; y < 6; y++) {
             for (var x = -5; x < 6; x++) {
+
               var c = new X.cube();
               c.lengthX = SIZE;
               c.lengthY = SIZE;
               c.lengthZ = SIZE;
-              c.transform.translateX(STEP * x);
-              c.transform.translateY(STEP * y);
-              c.transform.translateZ(STEP * z);
+
+              // Position the cube
+              var px = STEP * x;
+              var py = STEP * y;
+              var pz = STEP * z;
+              c.transform.translateX(px);
+              c.transform.translateY(py);
+              c.transform.translateZ(pz);
+
+              // ===== Part 8: simple, safe “art” =====
+              // 1) Smooth color gradient by position (x,y,z mapped to 0..1)
+              var maxIdx = 5; // loop bounds are -5..5
+              var nx = (x + maxIdx) / (2 * maxIdx);
+              var ny = (y + maxIdx) / (2 * maxIdx);
+              var nz = (z + maxIdx) / (2 * maxIdx);
+              c.color = [nx, ny, nz];
+
+              // 2) Carve a sphere: hide cubes outside radius R (world units)
+              var R = STEP * 5; // tweak if you want tighter/looser sphere
+              var dist = Math.sqrt(px*px + py*py + pz*pz);
+              if (dist > R) {
+                c.visible = false;
+              }
+
+              // 3) Light rotation pattern for some visual variety
+              if (((x + y + z) & 1) === 0) {
+                c.transform.rotateY(20);
+              }
+              // ======================================
+
               r.add(c);
             }
           }
         }
 
+        // Camera (before render)
         r.camera.position = [0, 0, 300];
 
+        // Picking (mouse hover)
         r.interactor.onMouseMove = function (event) {
           var cubeid = r.pick(event.offsetX, event.offsetY);
-          if (cubeid != 0) {
-            SELECTED_CUBE = r.get(cubeid);
-          } else {
-            SELECTED_CUBE = null;
-          }
+          SELECTED_CUBE = (cubeid != 0) ? r.get(cubeid) : null;
         };
 
+        // Keyboard controls (Q/W/E on selected cube; B spin; O/L scene storage)
         window.onkeydown = function (e) {
           const k = e.key.toLowerCase();
 
-          if (k === 'o') {
-            if (typeof download === 'function') download();
-            return;
-          }
-          if (k === 'l') {
-            if (typeof upload === 'function') upload("scene.json");
-            return;
-          }
+          // Part 7: scene storage (works even if nothing is selected)
+          if (k === 'o') { if (typeof download === 'function') download(); return; }
+          if (k === 'l') { if (typeof upload   === 'function') upload("scene.json"); return; }
 
+          // Spin toggle can be independent, but we’ll keep it here for simplicity
+          if (k === 'b') { SPIN_CAMERA = !SPIN_CAMERA; return; }
+
+          // The rest requires a selected cube
           if (!SELECTED_CUBE) return;
 
-          if (k === 'q') SELECTED_CUBE.visible = false;
-          else if (k === 'w') SELECTED_CUBE.color = [Math.random(), Math.random(), Math.random()];
-          else if (k === 'e') SELECTED_CUBE.transform.rotateX(10);
-          else if (k === 'b') SPIN_CAMERA = !SPIN_CAMERA;
+          if (k === 'q') {
+            SELECTED_CUBE.visible = false;
+          } else if (k === 'w') {
+            SELECTED_CUBE.color = [Math.random(), Math.random(), Math.random()];
+          } else if (k === 'e') {
+            SELECTED_CUBE.transform.rotateX(10);
+          }
         };
 
+        // Optional: spin camera when toggled
         r.onRender = function () {
           if (SPIN_CAMERA) {
             r.camera.rotate([1, 0]);
           }
         };
 
+        // Render once everything’s set up
         r.render();
       };
     </script>
   </body>
 </html>
+
 
