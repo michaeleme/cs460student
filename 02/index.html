@@ -1,9 +1,14 @@
 <html>
   <head>
     <script type="text/javascript" src="https://get.goXTK.com/xtk_edge.js"></script>
+    <script type="text/javascript" src="loader.js"></script>
   </head>
   <body>
     <script>
+
+      var SELECTED_CUBE = null;
+      var SPIN_CAMERA = false;
+      
       window.onload = function () {
         r = new X.renderer3D();
         r.init();
@@ -22,6 +27,52 @@
             }
           }
         }
+        r.camera.position = [0, 0, 300];
+
+        r.interactor.onMouseMove = function(event) {
+          var cubeid = r.pick(event.offsetX, event.offsetY);
+
+          if (cubeid != 0) {
+            SELECTED_CUBE = r.get(cubeid);
+          } else {
+            SELECTED_CUBE = null;
+          }
+        };
+
+        window.onkeypress = function (e) {
+          if (e.key === 'o' || e.key === 'O') {
+            download(); 
+            return;
+          }
+          if (e.key === 'l' || e.key === 'L') {
+            upload("scene.json");
+            return;
+          }
+            
+          if (e.key == 'b') {
+            SPIN_CAMERA = !SPIN_CAMERA;
+          }
+          
+          if (!SELECTED_CUBE) return;
+
+          if (e.key == 'q') {
+            SELECTED_CUBE.visible = false;
+          } else if (e.key == 'w') {
+            SELECTED_CUBE.color = [
+              Math.random(),
+              Math.random(),
+              Math.random()
+            ];
+          } else if (e.key == 'e') {
+            SELECTED_CUBE.transform.rotateX(10);
+          }
+        };
+
+        r.onRender = function () {
+          if (SPIN_CAMERA) {
+            r.camera.rotate([1, 0]);
+          }
+        };
 
         r.render();
       };
