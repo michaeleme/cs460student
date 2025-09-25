@@ -10,6 +10,7 @@
   </head>
   <body>
     <script>
+      var r;                       // global renderer
       var SIZE = 4;
       var GAP  = 2;
       var STEP = SIZE + GAP;
@@ -17,7 +18,7 @@
       var SPIN_CAMERA   = false;
 
       window.onload = function () {
-        var r = new X.renderer3D();
+        r = new X.renderer3D();    // assign globally (no "var" here)
         r.init();
 
         for (var z = -5; z < 6; z++) {
@@ -46,23 +47,24 @@
           }
         };
 
-        window.onkeypress = function (e) {
-          if (!SELECTED_CUBE && e.key !== 'o' && e.key !== 'O' && e.key !== 'l' && e.key !== 'L' && e.key !== 'b' && e.key !== 'B') {
+        window.onkeydown = function (e) {
+          const k = e.key.toLowerCase();
+
+          if (k === 'o') {
+            if (typeof download === 'function') download();
             return;
           }
-          if (e.key === 'q' || e.key === 'Q') {
-            SELECTED_CUBE.visible = false;
-          } else if (e.key === 'w' || e.key === 'W') {
-            SELECTED_CUBE.color = [Math.random(), Math.random(), Math.random()];
-          } else if (e.key === 'e' || e.key === 'E') {
-            SELECTED_CUBE.transform.rotateX(10);
-          } else if (e.key === 'b' || e.key === 'B') {
-            SPIN_CAMERA = !SPIN_CAMERA;
-          } else if (e.key === 'o' || e.key === 'O') {
-            if (typeof download === 'function') download();
-          } else if (e.key === 'l' || e.key === 'L') {
+          if (k === 'l') {
             if (typeof upload === 'function') upload("scene.json");
+            return;
           }
+
+          if (!SELECTED_CUBE) return;
+
+          if (k === 'q') SELECTED_CUBE.visible = false;
+          else if (k === 'w') SELECTED_CUBE.color = [Math.random(), Math.random(), Math.random()];
+          else if (k === 'e') SELECTED_CUBE.transform.rotateX(10);
+          else if (k === 'b') SPIN_CAMERA = !SPIN_CAMERA;
         };
 
         r.onRender = function () {
