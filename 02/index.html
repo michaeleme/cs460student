@@ -20,6 +20,7 @@
           for (var y = -5; y < 6; y++) {
             for (var x = -5; x < 6; x++) {
               var new_cube = new X.cube();
+              new_cube.color = [1, 0, 0];
               new_cube.transform.translateX((SIZE + GAP) * x);
               new_cube.transform.translateY((SIZE + GAP) * y);
               new_cube.transform.translateZ((SIZE + GAP) * z);
