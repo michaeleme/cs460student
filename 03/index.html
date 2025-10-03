@@ -1,0 +1,128 @@
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
+    <title>CS460 – Torus Placement</title>
+    <style>
+      html, body { 
+        background-color:#000;
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden !important;  
+      }
+    </style>
+
+    <!-- ES module shim for Three.js imports -->
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+
+    <!-- Import map for Three.js -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@latest/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@latest/examples/jsm/"
+      }
+    }
+    </script>
+
+    <script type="module">
+      import * as THREE from 'three';
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+      // we'll use var everywhere to match your professor's style
+      var renderer, controls, scene, camera;
+      var invisible_plane;
+      var usePink = true; // toggle color each placement
+
+      window.onload = function () {
+
+        // Scene
+        scene = new THREE.Scene();
+
+        // Camera
+        var fov = 75;
+        var ratio = window.innerWidth / window.innerHeight;
+        var zNear = 1;
+        var zFar = 10000;
+        camera = new THREE.PerspectiveCamera(fov, ratio, zNear, zFar);
+        camera.position.set(0, 0, 100);
+
+        // Renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Lights
+        var ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        var light = new THREE.DirectionalLight(0xffffff, 1.8);
+        light.position.set(10, 100, 10);
+        scene.add(light);
+
+        // Invisible placement plane (very large)
+        var planeGeo = new THREE.PlaneGeometry(10000, 10000);
+        var planeMat = new THREE.MeshBasicMaterial({ visible: false });
+        invisible_plane = new THREE.Mesh(planeGeo, planeMat);
+        scene.add(invisible_plane);
+
+        // Orbit controls
+        controls = new OrbitControls(camera, renderer.domElement);
+
+        // === CLICK HANDLER ===
+        // SHIFT + mousedown -> place a torus at mouse position
+        renderer.domElement.onmousedown = function (e) {
+          // Only place when SHIFT is held; otherwise let OrbitControls handle camera movement
+          if (!e.shiftKey) return;
+
+          // Convert from pixel to normalized device coords (-1..1)
+          var vp_coords = new THREE.Vector2(
+            (e.clientX / window.innerWidth) * 2 - 1,
+            -(e.clientY / window.innerHeight) * 2 + 1
+          );
+
+          // Raycast from camera through near plane
+          var raycaster = new THREE.Raycaster();
+          raycaster.setFromCamera(vp_coords, camera);
+
+          // Intersect the invisible plane
+          var hits = raycaster.intersectObject(invisible_plane);
+          if (!hits || hits.length === 0) return;
+
+          var p = hits[0].point;
+
+          // === CREATE A TORUS KNOT (solid) ===
+          // radius, tube, tubularSegments, radialSegments, p, q
+          var geo = new THREE.TorusKnotGeometry(8, 2.5, 128, 16, 2, 3);
+
+          // Alternate hotpink and grass green
+          var color = usePink ? 0xFF69B4 : 0x32CD32;
+          usePink = !usePink;
+
+          var mat = new THREE.MeshStandardMaterial({ color: color, metalness: 0.1, roughness: 0.6 });
+          var torus = new THREE.Mesh(geo, mat);
+
+          torus.position.copy(p);
+          scene.add(torus);
+        };
+
+        // Resize handling
+        window.addEventListener('resize', function () {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+      };
+
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+    </script>
+  </head>
+  <body></body>
+</html>
