@@ -32,8 +32,9 @@
       var invisible_plane;
 
       var LASTOBJECT = null;
-      var ISSCALING = false;
-      var lastScaleSign = 1;
+      var SCALING = false;
+      var OBJECTS = [];
+      var FLICKERING = false;
 
       window.onload = function () {
         scene = new THREE.Scene();
@@ -74,7 +75,7 @@
           raycaster.setFromCamera(new THREE.Vector3(vp.x, vp.y, 0), camera);
 
           var hits = raycaster.intersectObject(invisible_plane);
-          if (!hits || hits.length === 0) return;
+          if (!hits || hits.length === 0) return null;
 
           var pos = hits[0].point;
 
@@ -84,63 +85,50 @@
 
           torus.position.set(pos.x, pos.y, pos.z);
           scene.add(torus);
-
-          LASTOBJECT = torus;
-          lastScaleSign = 1;
-          ISSCALING = true;
+          OBJECTS.push(torus);
+          return torus;
         }
 
         renderer.domElement.onmousedown = function (e) {
           if (e.shiftKey) {
             controls.enabled = false;
-            placeTorusAtEvent(e);
+            LASTOBJECT = placeTorusAtEvent(e);
+            SCALING = !!LASTOBJECT;
           } else {
             controls.enabled = true;
-            ISSCALING = false;
-            LASTOBJECT = null;
           }
         };
 
         renderer.domElement.onmousemove = function (e) {
-          if (!ISSCALING || !LASTOBJECT) return;
-
-          var dy = e.movementY || 0;
-          var delta = -dy * 0.01;
-
-          var sx = LASTOBJECT.scale.x + delta;
-          var sy = LASTOBJECT.scale.y + delta;
-          var sz = LASTOBJECT.scale.z + delta;
-
-          var eps = 1e-6;
-          if (Math.abs(sx) < eps) sx = (sx < 0 ? -eps : eps);
-          if (Math.abs(sy) < eps) sy = (sy < 0 ? -eps : eps);
-          if (Math.abs(sz) < eps) sz = (sz < 0 ? -eps : eps);
-
-          var newSign = Math.sign(sx);
-          if (newSign === 0) newSign = 1;
-
-          if (newSign !== lastScaleSign) {
-            if (LASTOBJECT.material.color.getHex() === 0xFF69B4) {
-              LASTOBJECT.material.color.set(0x7CFC00);
-            } else {
-              LASTOBJECT.material.color.set(0xFF69B4);
-            }
-            lastScaleSign = newSign;
+          if (!SCALING || !LASTOBJECT) return;
+          var delta = -e.movementY * 0.01;
+          var sx = LASTOBJECT.scale.x;
+          var target = sx + delta;
+          var crossed = (sx > 0 && target <= 0) || (sx < 0 && target >= 0);
+          if (crossed) {
+            var curr = LASTOBJECT.material.color.getHex();
+            LASTOBJECT.material.color.set(curr === 0xFF69B4 ? 0x7CFC00 : 0xFF69B4);
           }
-
-          LASTOBJECT.scale.set(sx, sy, sz);
+          if (target === 0) target = 0.001;
+          LASTOBJECT.scale.set(Math.abs(target), Math.abs(target), Math.abs(target));
         };
 
         renderer.domElement.onmouseup = function () {
           controls.enabled = true;
-          ISSCALING = false;
+          SCALING = false;
           LASTOBJECT = null;
         };
 
         renderer.domElement.onmouseleave = function () {
           controls.enabled = true;
-          ISSCALING = false;
+          SCALING = false;
           LASTOBJECT = null;
+        };
+
+        window.onkeypress = function (e) {
+          if (e.key === 'f' || e.key === 'F') {
+            FLICKERING = !FLICKERING;
+          }
         };
 
         window.addEventListener('resize', function () {
@@ -154,6 +142,16 @@
 
       function animate() {
         requestAnimationFrame(animate);
+
+        if (FLICKERING) {
+          for (var i = 0; i < OBJECTS.length; i++) {
+            var o = OBJECTS[i];
+            o.material.transparent = true;
+            o.material.opacity = Math.random();
+            o.material.needsUpdate = true;
+          }
+        }
+
         controls.update();
         renderer.render(scene, camera);
       }
@@ -161,6 +159,8 @@
   </head>
   <body></body>
 </html>
+
+
 
 
 
