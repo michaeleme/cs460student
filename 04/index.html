@@ -100,7 +100,7 @@
  
  
       all_fish = [];
-      all_fish.push( createFish( new Float32Array([0, 0, 0]), new Float32Array([1,0,0,1]), 1, 1) );
+      all_fish.push( createFish( new Float32Array([0, 0, 0]), new Float32Array([1,0,0,1]), 1, -1) );
 
       for (var i = 0; i < 100; i++) {
         random_color = [Math.random(),Math.random(),Math.random(),Math.random()];
@@ -151,6 +151,10 @@
       gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
 
       var eye_vertex = new Float32Array([0.2, 0.2, 0.0]);
+
+      if (direction == -1) {
+        eye_vertex = new Float32Array([0.2, -0.2, 0.0]);
+      }
 
       var eye_v_buffer = gl.createBuffer();
       gl.bindBuffer( gl.ARRAY_BUFFER, eye_v_buffer );
@@ -218,9 +222,9 @@
         gl.enableVertexAttribArray ( a_position );
  
         theta = Math.random()*10 * Math.PI/180;
-        var transform = [current_scale*Math.cos(theta), Math.sin(theta), 0, 0,
-                        -Math.sin(theta), current_scale*Math.cos(theta), 0, 0,
-                        0, 0, current_scale*1, 0,
+        var transform = [current_direction*current_scale*Math.cos(theta), Math.sin(theta), 0, 0,
+                        -Math.sin(theta), current_direction*current_scale*Math.cos(theta), 0, 0,
+                        0, 0, current_direction*current_scale*1, 0,
                         current_offset[0], current_offset[1], current_offset[2], 1];
 
         var u_transform = gl.getUniformLocation( shaderprogram, 'u_transform' );
@@ -229,6 +233,19 @@
  
         var u_color = gl.getUniformLocation( shaderprogram, 'u_color' );
         
+        t = performance.now() * 0.001;
+        a = 0.6 + 0.4 * Math.sin(t * 2.0);
+        current_color = new Float32Array([
+          0.3 + 0.2*Math.sin(t + 0.0),
+          0.6 + 0.2*Math.sin(t + 2.0),
+          0.9 + 0.1*Math.sin(t + 4.0),
+          a
+        ]);
+
+        if (r == 0) {
+          current_color = [1,0,0,.7];
+        }
+
         gl.uniform4fv( u_color, current_color );
  
         //************************************************************//
@@ -260,5 +277,6 @@
     <canvas id="c"></canvas>
   </body>
 </html>
+
 
 
