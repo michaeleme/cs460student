@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CS460 Assignment 5 - Truck Scan</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: black;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  </style>
+  <script src="https://mrdoob.github.io/stats.js/build/stats.min.js"></script>
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { VertexNormalsHelper } from 'three/addons/helpers/VertexNormalsHelper.js';
+    import { Pane } from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.5/dist/tweakpane.min.js';
+
+    window['SCENE'] = {
+      'anaglyph': false,
+      'poly': null,
+      'rotate_poly': false,
+      'do_rotate_poly': function() {
+        window['SCENE']['rotate_poly'] = !window['SCENE']['rotate_poly'];
+      },
+      'blender': null,
+      'blender_helper': null,
+      'rotate_blender': false,
+      'do_rotate_blender': function() {
+        window['SCENE']['rotate_blender'] = !window['SCENE']['rotate_blender'];
+      },
+      'blender_old_material': null,
+      'change_material': function() {
+        if (!window['SCENE']['blender_old_material']) {
+          window['SCENE']['blender_old_material'] = window['SCENE']['blender'].material.clone();
+          window['SCENE']['blender'].material = new THREE.MeshNormalMaterial();
+        } else {
+          window['SCENE']['blender'].material = window['SCENE']['blender_old_material'].clone();
+          window['SCENE']['blender_old_material'] = null;
+        }
+      }
+    };
+
+    var scene, camera, renderer, controls;
+    var light, ambientLight;
+    var loader;
+    var pane;
+    var effect;
+    var stats;
+
+    window.onload = function() {
+      
+      var canvas = document.getElementById('c');
+      
+      scene = new THREE.Scene();
+      
+      camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        10000
+      );
+      camera.position.set(0, 10, 20);
+      
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      
+      stats = new Stats();
+      document.body.appendChild(stats.domElement);
+      
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      
+      light = new THREE.DirectionalLight(0xffffff, 2.0);
+      light.position.set(5, 10, 7.5);
+      scene.add(light);
+      
+      ambientLight = new THREE.AmbientLight(0xffffff, 3.0);
+      scene.add(ambientLight);
+      
+      effect = new AnaglyphEffect(renderer);
+      effect.setSize(window.innerWidth, window.innerHeight);
+      
+      pane = new Pane();
+      var sceneui = pane.addFolder({title: 'Scene'});
+      
+      sceneui.addBinding(window.SCENE, 'anaglyph');
+      sceneui.addBinding(light.position, 'x', {min:-100, max:100, label:'Light X'});
+      sceneui.addBinding(light.position, 'y', {min:-100, max:100, label:'Light Y'});
+      sceneui.addBinding(light.position, 'z', {min:-100, max:100, label:'Light Z'});
+      sceneui.addBinding(light, 'intensity', {min:0, max:10, label:'Intensity'});
+      sceneui.addBinding(ambientLight, 'color', {label:'AmbientLight Color'});
+      
+      loader = new GLTFLoader();
+      
+      loader.load('oldtruck2.glb', function(gltf) {
+        
+        scene.add(gltf.scene);
+        
+        var poly = gltf.scenes[0].children[0];
+        poly.scale.x = 10;
+        poly.scale.y = 10;
+        poly.scale.z = 10;
+        
+        poly.quaternion.w = 1;
+        poly.quaternion.x = 0;
+        poly.quaternion.y = 0;
+        poly.quaternion.z = 0;
+        
+        poly.translateX(-1);
+        
+        console.log('Original truck loaded!');
+        
+        window.SCENE.poly = poly;
+        
+        var polyui = pane.addFolder({title: 'PolyCam Mesh'});
+        polyui.addBinding(window.SCENE.poly.material, 'wireframe');
+        polyui.addButton({title:'rotate!'}).on('click', () => {
+          window.SCENE.do_rotate_poly();
+        });
+        
+      }, undefined, function(error) {
+        console.error('Error loading model:', error);
+      });
+      
+      loader.load('newtruck.glb', function(gltf) {
+        
+        scene.add(gltf.scene);
+        
+        var blender = gltf.scenes[0].children[0];
+        blender.scale.x = 10;
+        blender.scale.y = 10;
+        blender.scale.z = 10;
+        
+        blender.quaternion.w = 1;
+        blender.quaternion.x = 0;
+        blender.quaternion.y = 0;
+        blender.quaternion.z = 0;
+        
+        blender.translateX(1);
+        
+        console.log('Edited truck loaded!');
+        
+        window.SCENE.blender = blender;
+        
+        var helper = new VertexNormalsHelper(blender, 0.1, 0x0000ff);
+        helper.visible = false;
+        scene.add(helper);
+        window.SCENE.blender_helper = helper;
+        
+        var blenderui = pane.addFolder({title: 'Blender Mesh'});
+        blenderui.addBinding(helper, 'visible', {label:'Show normals!'});
+        blenderui.addButton({title:'Change Material!'}).on('click', () => {
+          window.SCENE.change_material();
+        });
+        blenderui.addButton({title:'rotate!'}).on('click', () => {
+          window.SCENE.do_rotate_blender();
+        });
+        
+      }, undefined, function(error) {
+        console.error('Error loading edited model:', error);
+      });
+      
+      window.addEventListener('resize', onWindowResize, false);
+      
+      animate();
+    };
+
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      if (window.SCENE.poly) {
+        var q;
+        if (window.SCENE.rotate_poly) {
+          q = new THREE.Quaternion();
+          q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
+          window.SCENE.poly.quaternion.slerp(q, 0.01);
+        } else {
+          q = new THREE.Quaternion(0, 0, 0, 1);
+          window.SCENE.poly.quaternion.slerp(q, 0.01);
+        }
+      }
+      
+      if (window.SCENE.blender) {
+        var q2;
+        if (window.SCENE.rotate_blender) {
+          q2 = new THREE.Quaternion();
+          q2.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
+          window.SCENE.blender.quaternion.slerp(q2, 0.01);
+        } else {
+          q2 = new THREE.Quaternion(0, 0, 0, 1);
+          window.SCENE.blender.quaternion.slerp(q2, 0.01);
+        }
+        if (window.SCENE.blender_helper) {
+          window.SCENE.blender_helper.update();
+        }
+      }
+      
+      controls.update();
+      
+      if (window.SCENE.anaglyph) {
+        effect.render(scene, camera);
+      } else {
+        renderer.render(scene, camera);
+      }
+      
+      stats.update();
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      effect.setSize(window.innerWidth, window.innerHeight);
+    }
+
+  </script>
+</body>
+</html>
